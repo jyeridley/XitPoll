@@ -1,0 +1,14 @@
+{
+  "name": "xitpoll",
+  "version": "0.1.0",
+  "description": "A Google Forms-style form builder that signs people in with Xitter",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "mock-xitter": "node test/mock-xitter.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  }
+}
