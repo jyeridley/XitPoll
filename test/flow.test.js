@@ -115,13 +115,17 @@ test("creating and saving a form", async () => {
 			{ id: "day", type: "date", title: "Day" },
 			{ id: "notes", type: "paragraph", title: "Notes" },
 		],
-		settings: { showResults: true },
+		settings: { showResults: true, theme: "pink" },
 	};
 	const saved = await alice.go(`/api/forms/${formId}`, { method: "PUT", body: JSON.stringify(form), headers: { "content-type": "application/json", "x-csrf-token": aliceCsrf, origin: base } });
 	assert.equal(saved.res.status, 200, saved.text);
 	const out = JSON.parse(saved.text).form;
 	assert.equal(out.questions.length, 6);
 	assert.equal(out.questions[3].max, 5);
+	assert.equal(out.settings.theme, "pink");
+	const odd = await alice.go(`/api/forms/${formId}`, { method: "PUT", body: JSON.stringify({ ...form, settings: { theme: "url(evil)" } }), headers: { "content-type": "application/json", "x-csrf-token": aliceCsrf, origin: base } });
+	assert.equal(JSON.parse(odd.text).form.settings.theme, "blue", "unknown themes fall back to blue");
+	await alice.go(`/api/forms/${formId}`, { method: "PUT", body: JSON.stringify(form), headers: { "content-type": "application/json", "x-csrf-token": aliceCsrf, origin: base } });
 
 	// without the CSRF header, or from another site, nothing changes
 	const noCsrf = await alice.go(`/api/forms/${formId}`, { method: "PUT", body: "{}", headers: { "content-type": "application/json", origin: base } });
@@ -134,6 +138,7 @@ test("anyone with the link can answer; answers are validated", async () => {
 	const page = await stranger.go(`/f/${formId}`);
 	assert.equal(page.res.status, 200);
 	assert.match(page.text, /Team lunch &lt;script&gt;/);
+	assert.match(page.text, /<body class="theme-pink /);
 	assert.doesNotMatch(page.text, /<script>/);
 	assert.match(page.text, /value="Ramen"/);
 	// the blank option isn't offered
@@ -149,7 +154,7 @@ test("anyone with the link can answer; answers are validated", async () => {
 	assert.match(ok.text, /Your response has been recorded/);
 	// showResults: the poll-style summary appears
 	assert.match(ok.text, /Results so far/);
-	assert.match(ok.text, /<progress max="1" value="1">/);
+	assert.match(ok.text, /class="fill p100"/);
 
 	const bad = await stranger.post(`/f/${formId}`, { q_name: "x", q_place: "Tacos", q_rating: "9", q_day: "2026-02-31" });
 	assert.equal(bad.res.status, 422);
@@ -210,7 +215,7 @@ test("closing the form stops new responses", async () => {
 	assert.equal(closed.res.status, 403);
 	assert.match(closed.text, /no longer accepting/);
 	const list = await alice.go("/");
-	assert.match(list.text, /2 responses · Closed/);
+	assert.match(list.text, /class="pill closed">.*Closed<\/span><span class="dim">2 responses/);
 });
 
 test("deleting a form and signing out", async () => {
@@ -219,7 +224,7 @@ test("deleting a form and signing out", async () => {
 	assert.equal((await stranger.go(`/f/${formId}`)).res.status, 404);
 	const out = await alice.post("/logout", { csrf: aliceCsrf });
 	assert.equal(out.res.status, 303);
-	assert.match((await alice.go("/")).text, /Forms and polls for Xitter/);
+	assert.match((await alice.go("/")).text, /Ask anything/);
 });
 
 test("the client metadata document names our redirect", async () => {

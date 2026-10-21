@@ -16,6 +16,10 @@ A Google Forms-style form and poll builder where people sign in with their
   after they submit.
 - **Responses**: a chart for each question, a table of individual responses,
   CSV export, closing and reopening a form, and deleting all responses.
+- **Looks**: six color themes per form, light and dark mode, and animations
+  throughout (cards slide when you reorder, charts grow in, a check mark and
+  confetti on submit). Motion turns off for people who ask their device to
+  reduce it.
 
 No dependencies: Node 22.13+ and its built-in SQLite.
 

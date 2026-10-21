@@ -72,7 +72,7 @@ function checkCsrf(user, token) {
 	if (!user || !token || token !== user.csrf) throw new HttpError(403, "Your session changed. Go back, reload the page and try again.");
 }
 
-const STATIC = { "style.css": "text/css", "builder.js": "text/javascript", "confirm.js": "text/javascript", "icon.svg": "image/svg+xml" };
+const STATIC = { "style.css": "text/css", "app.js": "text/javascript", "builder.js": "text/javascript", "icon.svg": "image/svg+xml" };
 const staticDir = fileURLToPath(new URL("./public/", import.meta.url));
 
 async function serveStatic(res, name) {

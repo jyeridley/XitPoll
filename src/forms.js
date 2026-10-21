@@ -11,6 +11,9 @@ export const TYPES = {
 };
 export const CHOICE_TYPES = new Set(["choice", "checkbox", "dropdown"]);
 
+// form colors; style.css defines a .theme-<name> class for each
+export const THEMES = ["blue", "purple", "pink", "orange", "green", "slate"];
+
 const LIMITS = { questions: 200, options: 100, short: 1000, paragraph: 20000 };
 
 const text = (value, max) => (typeof value === "string" ? value.slice(0, max) : "");
@@ -48,6 +51,7 @@ export function sanitizeForm(input) {
 			requireSignIn: settings.requireSignIn === true || oneResponse,
 			oneResponse,
 			showResults: settings.showResults === true,
+			theme: THEMES.includes(settings.theme) ? settings.theme : "blue",
 			confirmation: text(settings.confirmation, 1000),
 		},
 	};

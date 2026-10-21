@@ -135,8 +135,11 @@ export function ownedForm(id, ownerId) {
 }
 
 export function listForms(ownerId) {
-	return db.prepare(`select f.id, f.title, f.accepting, f.updated_at, (select count(*) from responses r where r.form_id = f.id) as responses
-		from forms f where f.owner_id = ? order by f.updated_at desc`).all(ownerId);
+	return db.prepare(`select f.id, f.title, f.accepting, f.updated_at, f.questions, f.settings,
+		(select count(*) from responses r where r.form_id = f.id) as responses,
+		(select max(created_at) from responses r where r.form_id = f.id) as latest
+		from forms f where f.owner_id = ? order by f.updated_at desc`).all(ownerId)
+		.map((row) => ({ ...row, questions: JSON.parse(row.questions).length, settings: JSON.parse(row.settings) }));
 }
 
 export function updateForm(id, { title, description, questions, settings, accepting }) {
