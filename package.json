@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "demo": "node --disable-warning=ExperimentalWarning test/demo.js",
     "mock-xitter": "node test/mock-xitter.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
   }

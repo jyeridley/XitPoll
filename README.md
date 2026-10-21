@@ -85,14 +85,33 @@ production.
 ## Trying it without a Xitter instance
 
 `test/mock-xitter.js` is a stand-in Xitter that follows the same OAuth rules
-and approves every sign-in as `@alice`:
+and approves every sign-in as `@alice`. One command starts it together with
+XitPoll (works in Windows Command Prompt and PowerShell too):
 
 ```sh
-npm run mock-xitter            # http://127.0.0.1:4000
-XITTER_INSTANCE=http://127.0.0.1:4000 XITTER_CLIENT_ID=123456789 npm start
+git clone https://github.com/jyeridley/xitpoll
+cd xitpoll
+npm run demo
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:3000. Demo data goes to `data/demo.db`.
+
+Setting variables differs by shell. To start XitPoll with your own settings:
+
+```sh
+# macOS / Linux
+XITTER_INSTANCE=https://your.instance XITTER_CLIENT_ID=123 npm start
+```
+```bat
+:: Windows Command Prompt
+set XITTER_INSTANCE=https://your.instance
+set XITTER_CLIENT_ID=123
+npm start
+```
+```powershell
+# Windows PowerShell
+$env:XITTER_INSTANCE="https://your.instance"; $env:XITTER_CLIENT_ID="123"; npm start
+```
 
 ## Tests
 
