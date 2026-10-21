@@ -298,7 +298,7 @@ function settingsCard() {
 		h("label", { class: "stack" }, h("b", {}, "Confirmation message"),
 			h("textarea", { class: "boxed", rows: 2, maxlength: 1000, value: s.confirmation, placeholder: "Your response has been recorded.", oninput: (e) => { s.confirmation = e.target.value; changed(); } })),
 		h("div", { class: "row between danger-zone" }, h("span", { class: "dim" }, "Deleting removes the form and all its responses."),
-			h("button", { type: "button", class: "ghost small danger", onclick: deleteForm }, "Delete form")));
+			h("button", { type: "button", class: "outline small danger", onclick: deleteForm }, "Delete form")));
 }
 
 async function deleteForm() {

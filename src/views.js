@@ -41,8 +41,8 @@ const X_MARK = `<svg class="x-mark" viewBox="0 0 24 24" aria-hidden="true"><path
 export function page({ title, body, user, wide = false, head = "", theme = "blue", bodyClass = "" }) {
 	const account = user
 		? `<div class="account">${avatar(user)}<span class="who"><b>${esc(user.name || user.screen_name)}</b><span class="dim">${esc(handle(user))}</span></span>
-<form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(user.csrf)}"><button class="ghost small">Sign out</button></form></div>`
-		: "";
+<form method="post" action="/logout"><input type="hidden" name="csrf" value="${esc(user.csrf)}"><button class="outline small">Sign out</button></form></div>`
+		: `<a class="button xitter small" href="/login">Sign in</a>`;
 	return `<!doctype html>
 <html lang="en">
 <head>
@@ -54,7 +54,7 @@ export function page({ title, body, user, wide = false, head = "", theme = "blue
 <script type="module" src="/static/app.js"></script>
 ${user ? `<meta name="csrf" content="${esc(user.csrf)}">` : ""}${head}
 </head>
-<body class="theme-${esc(theme)} ${bodyClass}">
+<body class="theme-${esc(theme)}${bodyClass ? ` ${bodyClass}` : ""}">
 <header class="top"><a class="brand" href="/">${icon("logo")}<span>${esc(config.appName)}</span></a>${account}</header>
 <main class="${wide ? "wide" : ""}">${body}</main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -62,50 +62,42 @@ ${user ? `<meta name="csrf" content="${esc(user.csrf)}">` : ""}${head}
 </html>`;
 }
 
-export const signInButton = (next, label = "Sign in with Xitter") =>
-	`<a class="button xitter big-button" href="/login?next=${encodeURIComponent(next)}">${X_MARK}<span>${esc(label)}</span></a>`;
+export const signInButton = (next, label = "Sign in with Xitter", kind = "xitter") =>
+	`<a class="button ${kind} big-button" href="/login?next=${encodeURIComponent(next)}">${X_MARK}<span>${esc(label)}</span></a>`;
 
 // percentage bars: a class per whole percent keeps widths out of style
 // attributes, which the content security policy doesn't allow
-const bar = (fraction) => `<span class="bar"><span class="fill p${Math.round(Math.min(Math.max(fraction, 0), 1) * 100)}"></span></span>`;
+const bar = (fraction) => `<span class="fill p${Math.round(Math.min(Math.max(fraction, 0), 1) * 100)}" aria-hidden="true"></span>`;
 
 export function landing() {
-	const demo = [["Polls in threads", 46], ["Sign-up sheets", 31], ["Quizzes", 23]];
 	return page({
 		title: "",
-		bodyClass: "landing",
+		wide: true,
 		body: `<section class="hero">
-<div class="hero-copy">
-<p class="eyebrow">For every Xitter instance</p>
-<h1>Ask anything.<br><span class="gradient-text">Get answers fast.</span></h1>
-<p class="lead">Build surveys, sign-up sheets and polls, share one link, and watch answers arrive. Sign in with your Xitter account; nobody needs a new password.</p>
-<div class="row">${signInButton("/")}</div>
-</div>
-<div class="hero-demo" aria-hidden="true">
-<div class="demo-card">
-<div class="demo-head"><span class="avatar">X</span><span><b>What should we try next?</b><span class="dim">128 votes · open</span></span></div>
-<ul class="demo-bars">${demo.map(([label, pct], i) => `<li class="${i === 0 ? "picked" : ""}"><span class="demo-fill p${pct}"></span><span class="demo-label">${label}</span><span class="demo-pct">${pct}%</span></li>`).join("")}</ul>
-</div>
-<div class="demo-chip chip-a">${icon("users")} One response per account</div>
-<div class="demo-chip chip-b">${icon("chart")} Live results</div>
-</div>
+<h1>Forms and polls, <span class="muted-strong">for Xitter.</span></h1>
+<p class="lead">Build surveys, sign-up sheets and polls. Share one link and see answers as they come in. Sign in with the Xitter account you already have.</p>
+<div class="row">${signInButton("/", "Sign in with Xitter", "primary")}<a class="button outline big-button" href="#how">How it works</a></div>
 </section>
-<ul class="features stagger">
-<li>${icon("list", "feature-icon")}<b>Seven question types</b><span>Short and long answers, multiple choice, checkboxes, dropdowns, linear scales and dates.</span></li>
-<li>${icon("lock", "feature-icon")}<b>Know who answered</b><span>Require respondents to sign in with Xitter and limit everyone to one response.</span></li>
-<li>${icon("chart", "feature-icon")}<b>Results as they arrive</b><span>Charts for every question, each individual response, and a CSV export.</span></li>
-</ul>`,
+<section class="how" id="how">
+<h2>How it works</h2>
+<p class="dim">Build a form, share the link, read the results.</p>
+<ul class="features">
+<li><b>${icon("list")}Seven question types</b><span>Short and long answers, multiple choice, checkboxes, dropdowns, linear scales and dates.</span></li>
+<li><b>${icon("lock")}Know who answered</b><span>Ask respondents to sign in with Xitter, and limit each account to one response.</span></li>
+<li><b>${icon("chart")}Results as they arrive</b><span>A chart for every question, each individual response, and a CSV export.</span></li>
+</ul>
+</section>`,
 	});
 }
 
 export function signIn({ next, error = "", instance = "" }) {
 	return page({
 		title: "Sign in",
-		body: `<section class="card narrow pop">
+		body: `<section class="card narrow">
 <div class="sign-in-mark">${X_MARK}</div>
 <h1>Sign in with Xitter</h1>
 <p class="dim">Enter the Xitter instance your account is on. You'll approve ${esc(config.appName)} there and come straight back.</p>
-${error ? `<p class="error shake" role="alert">${esc(error)}</p>` : ""}
+${error ? `<p class="error" role="alert">${esc(error)}</p>` : ""}
 <form method="get" action="/login" class="stack">
 <input type="hidden" name="next" value="${esc(next)}">
 <label>Instance<input class="boxed" name="instance" value="${esc(instance)}" placeholder="xitter.social" autocomplete="url" inputmode="url" autocapitalize="none" spellcheck="false" required autofocus></label>
@@ -118,7 +110,6 @@ ${error ? `<p class="error shake" role="alert">${esc(error)}</p>` : ""}
 
 export function dashboard(user, forms) {
 	const tiles = forms.map((f) => `<li><a href="/forms/${esc(f.id)}/edit" class="form-tile theme-${esc(themeOf(f))}">
-<span class="tile-art" aria-hidden="true"><span></span><span></span><span></span></span>
 <b class="tile-title">${esc(f.title)}</b>
 <span class="tile-meta"><span class="pill ${f.accepting ? "open" : "closed"}"><span class="dot"></span>${f.accepting ? "Open" : "Closed"}</span><span class="dim">${plural(f.responses, "response")}</span></span>
 <span class="dim small-text">${plural(f.questions, "question")} · edited ${esc(ago(f.updated_at))}</span>
@@ -128,7 +119,7 @@ export function dashboard(user, forms) {
 		title: "My forms",
 		user,
 		body: `<div class="page-head"><h1>My forms</h1><p class="dim">${forms.length ? `${plural(forms.length, "form")}, ${plural(total, "response")} in all` : "Make a form or poll and share the link."}</p></div>
-<ul class="tile-grid stagger">
+<ul class="tile-grid">
 <li><form method="post" action="/forms" class="new-tile-form"><input type="hidden" name="csrf" value="${esc(user.csrf)}"><button class="new-tile"><span class="plus">${icon("plus")}</span><b>New form</b><span class="dim">Start from a blank form</span></button></form></li>
 ${tiles}
 </ul>`,
@@ -142,7 +133,7 @@ export function builder(user, form, responseCount) {
 		title: form.title,
 		user,
 		theme: themeOf(form),
-		bodyClass: "tinted",
+		bodyClass: "editor",
 		head: `<script type="module" src="/static/builder.js"></script>`,
 		body: `<div class="toolbar sticky">
 <a href="/" class="button ghost small icon-text">${icon("back")}<span>Forms</span></a>
@@ -163,8 +154,8 @@ function questionField(q, value, error) {
 	const described = `${q.description ? `d_${q.id} ` : ""}${error ? `e_${q.id}` : ""}`.trim();
 	const aria = described ? ` aria-describedby="${described}"` : "";
 	let input = "";
-	if (q.type === "short") input = `<input class="line" name="${name}" value="${esc(value)}" maxlength="1000"${req}${aria} placeholder="Your answer">`;
-	else if (q.type === "paragraph") input = `<textarea class="line" name="${name}" rows="3" maxlength="20000"${req}${aria} placeholder="Your answer">${esc(value)}</textarea>`;
+	if (q.type === "short") input = `<input name="${name}" value="${esc(value)}" maxlength="1000"${req}${aria} placeholder="Your answer">`;
+	else if (q.type === "paragraph") input = `<textarea name="${name}" rows="3" maxlength="20000"${req}${aria} placeholder="Your answer">${esc(value)}</textarea>`;
 	else if (q.type === "date") input = `<input class="boxed" type="date" name="${name}" value="${esc(value)}"${req}${aria}>`;
 	else if (q.type === "dropdown") input = `<select class="boxed" name="${name}"${req}${aria}><option value="">Choose</option>${optionsOf(q).map((o) => `<option${o === value ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
 	else if (q.type === "choice" || q.type === "checkbox") {
@@ -178,7 +169,7 @@ function questionField(q, value, error) {
 	const grouped = ["choice", "checkbox", "scale"].includes(q.type);
 	const title = `${esc(q.title || "Untitled question")}${q.required ? ` <span class="req" aria-label="required">*</span>` : ""}`;
 	const desc = q.description ? `<p class="dim q-desc-text" id="d_${q.id}">${esc(q.description)}</p>` : "";
-	const err = error ? `<p class="error shake" id="e_${q.id}">${esc(error)}</p>` : "";
+	const err = error ? `<p class="error" id="e_${q.id}">${esc(error)}</p>` : "";
 	const attrs = `class="card question${error ? " invalid" : ""}" data-question`;
 	return grouped
 		? `<fieldset ${attrs}${aria}><legend>${title}</legend>${desc}${input}${err}</fieldset>`
@@ -193,19 +184,16 @@ export function respond({ form, user, values = {}, errors = {}, preview = false 
 	const who = user && form.settings.requireSignIn
 		? `<p class="signed">${avatar(user, "tiny")}<span>Answering as <b>${esc(handle(user))}</b>. The form's owner will see your account.</span></p>`
 		: "";
-	const problem = Object.keys(errors).length ? `<p class="card error-card shake" role="alert">Some answers need another look.</p>` : "";
+	const problem = Object.keys(errors).length ? `<p class="card error-card" role="alert">Some answers need another look.</p>` : "";
 	return page({
 		title: form.title,
 		user,
 		theme: themeOf(form),
-		bodyClass: "tinted",
 		body: `<div class="answer-progress" hidden><span class="answer-progress-fill"></span></div>
 ${preview ? `<p class="banner">${icon("eye")}<span>Preview: only you see this banner.</span><a href="/forms/${esc(form.id)}/edit">Back to editing</a></p>` : ""}
-<div class="stagger">
 ${formHeader(form, `${who}${required}`)}
 ${problem}
-</div>
-<form method="post" action="/f/${esc(form.id)}" class="answers stagger" novalidate>
+<form method="post" action="/f/${esc(form.id)}" class="answers" novalidate>
 ${user ? `<input type="hidden" name="csrf" value="${esc(user.csrf)}">` : ""}
 ${form.questions.map((q) => questionField(q, values[q.id] ?? (q.type === "checkbox" ? [] : ""), errors[q.id])).join("\n")}
 <div class="submit-row"><button class="big-button" data-busy="Sending…">Submit</button><button type="reset" class="ghost">Clear form</button></div>
@@ -224,8 +212,7 @@ export function gate({ form, user, kind }) {
 		title: form.title,
 		user,
 		theme: themeOf(form),
-		bodyClass: "tinted",
-		body: `<div class="stagger">${formHeader(form)}<div class="card gate"><div class="gate-art">${art}</div><h2>${heading}</h2><p class="dim">${detail}</p>${kind === "signin" ? signInButton(`/f/${form.id}`) : ""}</div></div>`,
+		body: `${formHeader(form)}<div class="card gate"><div class="gate-art">${art}</div><h2>${heading}</h2><p class="dim">${detail}</p>${kind === "signin" ? signInButton(`/f/${form.id}`) : ""}</div>`,
 	});
 }
 
@@ -235,7 +222,7 @@ function summaryBlocks(summary) {
 		if (counts) {
 			const base = Math.max(answered, 1);
 			const top = Math.max(...counts.map(([, n]) => n));
-			return `<section class="card">${head}<ul class="bars">${counts.map(([label, n]) => `<li${n && n === top ? ` class="leader"` : ""}><span class="label">${esc(label)}</span>${bar(n / base)}<span class="count">${n} <span class="dim">${Math.round((n / base) * 100)}%</span></span></li>`).join("")}</ul></section>`;
+			return `<section class="card">${head}<ul class="bars">${counts.map(([label, n]) => `<li${n && n === top ? ` class="leader"` : ""}>${bar(n / base)}<span class="label">${esc(label)}</span><span class="count">${Math.round((n / base) * 100)}% <span class="dim">(${n})</span></span></li>`).join("")}</ul></section>`;
 		}
 		const shown = texts.slice(-50).reverse();
 		return `<section class="card">${head}${shown.length ? `<ul class="texts">${shown.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>${texts.length > shown.length ? `<p class="dim">Showing the latest ${shown.length}. Download the CSV for all of them.</p>` : ""}` : `<p class="dim">No answers yet.</p>`}</section>`;
@@ -246,16 +233,14 @@ export function thanks({ form, user, responses }) {
 	const results = form.settings.showResults && responses
 		? `<h2 class="section">Results so far</h2>${summaryBlocks(summarize(form, responses).filter((s) => s.counts))}`
 		: "";
-	const confetti = `<div class="confetti" aria-hidden="true">${"<i></i>".repeat(14)}</div>`;
 	return page({
 		title: form.title,
 		user,
 		theme: themeOf(form),
-		bodyClass: "tinted",
-		body: `<div class="stagger">${formHeader(form)}<div class="card done">${confetti}
-<svg class="done-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-15"/></svg>
+		body: `${formHeader(form)}<div class="card done">
+<span class="done-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
 <h2>${esc(form.settings.confirmation || "Your response has been recorded.")}</h2>
-${form.settings.oneResponse ? "" : `<p><a class="button ghost small" href="/f/${esc(form.id)}">Submit another response</a></p>`}</div>${results}</div>`,
+${form.settings.oneResponse ? "" : `<p><a class="button ghost small" href="/f/${esc(form.id)}">Submit another response</a></p>`}</div>${results}`,
 	});
 }
 
@@ -271,17 +256,15 @@ ${responses.slice().reverse().map((r) => `<tr><td class="nowrap">${esc(new Date(
 		user,
 		wide: true,
 		theme: themeOf(form),
-		bodyClass: "tinted",
 		body: `<div class="toolbar">
 <a href="/forms/${esc(form.id)}/edit" class="button ghost small icon-text">${icon("edit")}<span>Edit form</span></a><span class="grow"></span>
 ${responses.length ? `<a class="button ghost small icon-text" href="/forms/${esc(form.id)}/responses.csv" download>${icon("download")}<span>Download CSV</span></a>` : ""}
 </div>
-<div class="stagger">
 <div class="card form-head"><h1>${esc(form.title)}</h1>
 <div class="stats">
-<div class="stat"><span class="stat-value" data-count="${responses.length}">${responses.length}</span><span class="dim">${responses.length === 1 ? "response" : "responses"}</span></div>
+<div class="stat"><span class="stat-value">${responses.length}</span><span class="dim">${responses.length === 1 ? "response" : "responses"}</span></div>
 <div class="stat"><span class="stat-value">${latest ? esc(ago(latest)) : "–"}</span><span class="dim">latest response</span></div>
-<div class="stat"><span class="stat-value" data-count="${signedIn}">${signedIn}</span><span class="dim">signed in with Xitter</span></div>
+<div class="stat"><span class="stat-value">${signedIn}</span><span class="dim">signed in with Xitter</span></div>
 </div>
 <div class="row between head-actions">
 <form method="post" action="/forms/${esc(form.id)}/accepting">${csrf}<input type="hidden" name="accepting" value="${form.accepting ? "0" : "1"}">
@@ -289,14 +272,13 @@ ${responses.length ? `<a class="button ghost small icon-text" href="/forms/${esc
 ${responses.length ? `<form method="post" action="/forms/${esc(form.id)}/responses/delete" data-confirm="Delete all ${responses.length} responses? This can't be undone.">${csrf}<button class="ghost small danger icon-text">${icon("trash")}<span>Delete all responses</span></button></form>` : ""}
 </div></div>
 ${responses.length
-	? `<div class="tabs" role="tablist" hidden><button type="button" role="tab" aria-selected="true" aria-controls="summary">Summary</button><button type="button" role="tab" aria-selected="false" aria-controls="individual">Individual</button><span class="tab-ink"></span></div>
+	? `<div class="tabs" role="tablist" hidden><button type="button" role="tab" aria-selected="true" aria-controls="summary">Summary</button><button type="button" role="tab" aria-selected="false" aria-controls="individual">Individual</button></div>
 <div id="summary" role="tabpanel"><h2 class="section">Summary</h2>${summaryBlocks(summarize(form, responses))}</div>
 <div id="individual" role="tabpanel"><h2 class="section">Individual responses</h2>${individual}</div>`
-	: `<div class="card empty"><div class="empty-art">${icon("chart")}</div><h2>Waiting for responses</h2><p class="dim">Share this link to start collecting answers:</p><p><a href="/f/${esc(form.id)}">${esc(`${config.publicUrl}/f/${form.id}`)}</a></p></div>`}
-</div>`,
+	: `<div class="card empty"><div class="empty-art">${icon("chart")}</div><h2>Waiting for responses</h2><p class="dim">Share this link to start collecting answers:</p><p><a href="/f/${esc(form.id)}">${esc(`${config.publicUrl}/f/${form.id}`)}</a></p></div>`}`,
 	});
 }
 
 export function message(title, text, { user, status = 400 } = {}) {
-	return { status, html: page({ title, user, body: `<section class="card narrow pop"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a class="button ghost small" href="/">Go home</a></p></section>` }) };
+	return { status, html: page({ title, user, body: `<section class="card narrow"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a class="button ghost small" href="/">Go home</a></p></section>` }) };
 }

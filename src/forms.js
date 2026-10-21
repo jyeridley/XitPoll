@@ -11,8 +11,8 @@ export const TYPES = {
 };
 export const CHOICE_TYPES = new Set(["choice", "checkbox", "dropdown"]);
 
-// form colors; style.css defines a .theme-<name> class for each
-export const THEMES = ["blue", "purple", "pink", "orange", "green", "slate"];
+// form colors, X's accent colors; style.css defines a .theme-<name> class for each
+export const THEMES = ["blue", "yellow", "pink", "purple", "orange", "green"];
 
 const LIMITS = { questions: 200, options: 100, short: 1000, paragraph: 20000 };
 

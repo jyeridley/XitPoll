@@ -49,7 +49,6 @@ if (progress && answers) {
 const tabs = document.querySelector(".tabs");
 if (tabs) {
 	const buttons = [...tabs.querySelectorAll("[role=tab]")];
-	const ink = tabs.querySelector(".tab-ink");
 	const select = (button) => {
 		for (const b of buttons) {
 			const on = b === button;
@@ -57,10 +56,7 @@ if (tabs) {
 			b.tabIndex = on ? 0 : -1;
 			const panel = document.getElementById(b.getAttribute("aria-controls"));
 			panel.hidden = !on;
-			if (on) panel.classList.remove("panel-in"), void panel.offsetWidth, panel.classList.add("panel-in");
 		}
-		ink.style.setProperty("--x", `${button.offsetLeft}px`);
-		ink.style.setProperty("--w", `${button.offsetWidth}px`);
 	};
 	tabs.hidden = false;
 	for (const panel of document.querySelectorAll("[role=tabpanel] > h2.section")) panel.classList.add("visually-hidden");
@@ -77,17 +73,3 @@ if (tabs) {
 	});
 	select(buttons[0]);
 }
-
-// numbers count up to their value
-if (!reducedMotion.matches)
-	for (const el of document.querySelectorAll("[data-count]")) {
-		const target = Number(el.dataset.count);
-		if (!(target > 1)) continue;
-		const start = performance.now(), duration = 700;
-		const step = (now) => {
-			const t = Math.min((now - start) / duration, 1);
-			el.textContent = Math.round(target * (1 - (1 - t) ** 3));
-			if (t < 1) requestAnimationFrame(step);
-		};
-		requestAnimationFrame(step);
-	}

@@ -138,7 +138,7 @@ test("anyone with the link can answer; answers are validated", async () => {
 	const page = await stranger.go(`/f/${formId}`);
 	assert.equal(page.res.status, 200);
 	assert.match(page.text, /Team lunch &lt;script&gt;/);
-	assert.match(page.text, /<body class="theme-pink /);
+	assert.match(page.text, /<body class="theme-pink"/);
 	assert.doesNotMatch(page.text, /<script>/);
 	assert.match(page.text, /value="Ramen"/);
 	// the blank option isn't offered
@@ -224,7 +224,7 @@ test("deleting a form and signing out", async () => {
 	assert.equal((await stranger.go(`/f/${formId}`)).res.status, 404);
 	const out = await alice.post("/logout", { csrf: aliceCsrf });
 	assert.equal(out.res.status, 303);
-	assert.match((await alice.go("/")).text, /Ask anything/);
+	assert.match((await alice.go("/")).text, /Forms and polls, /);
 });
 
 test("the client metadata document names our redirect", async () => {
