@@ -38,6 +38,13 @@ create table if not exists oauth_states (
 	created_at integer not null
 );
 
+-- the Xitter account a staff entry belonged to when it first signed in, so
+-- someone who later takes over a renamed staff handle doesn't get access
+create table if not exists staff_accounts (
+	entry text primary key,
+	user_id integer not null references users(id) on delete cascade
+);
+
 create table if not exists forms (
 	id text primary key,
 	owner_id integer not null references users(id) on delete cascade,
@@ -49,7 +56,7 @@ create table if not exists forms (
 	created_at integer not null,
 	updated_at integer not null
 );
-create index if not exists forms_owner on forms(owner_id, updated_at desc);
+create index if not exists forms_updated on forms(updated_at desc);
 
 create table if not exists responses (
 	id integer primary key,
@@ -71,6 +78,23 @@ export function upsertUser({ instance, id, screen_name, name, avatar_url }) {
 	return db.prepare(`insert into users(instance, xitter_id, screen_name, name, avatar_url, created_at) values(?, ?, ?, ?, ?, ?)
 		on conflict (instance, xitter_id) do update set screen_name = excluded.screen_name, name = excluded.name, avatar_url = excluded.avatar_url
 		returning *`).get(instance, String(id), screen_name, name ?? "", avatar_url ?? null, Date.now());
+}
+
+// staff
+
+// people taken off XITPOLL_STAFF lose their binding, so adding the handle back
+// later binds it afresh
+export function forgetStaffExcept(entries) {
+	const keep = [...entries];
+	db.prepare(`delete from staff_accounts where entry not in (${keep.map(() => "?").join(", ") || "''"})`).run(...keep);
+}
+
+export function isStaff(user) {
+	if (!user) return false;
+	const entry = `${user.screen_name.toLowerCase()}@${new URL(user.instance).host}`;
+	if (!config.staff.has(entry)) return false;
+	db.prepare("insert into staff_accounts(entry, user_id) values(?, ?) on conflict do nothing").run(entry, user.id);
+	return db.prepare("select user_id from staff_accounts where entry = ?").get(entry).user_id === user.id;
 }
 
 // sessions
@@ -129,16 +153,12 @@ export function createForm(ownerId) {
 
 export const getForm = (id) => formRow(db.prepare("select * from forms where id = ?").get(String(id)));
 
-export function ownedForm(id, ownerId) {
-	const form = getForm(id);
-	return form && form.owner_id === ownerId ? form : undefined;
-}
-
-export function listForms(ownerId) {
-	return db.prepare(`select f.id, f.title, f.accepting, f.updated_at, f.questions, f.settings,
+// every form, for the staff dashboard
+export function listForms() {
+	return db.prepare(`select f.id, f.title, f.accepting, f.updated_at, f.questions, f.settings, u.screen_name as owner,
 		(select count(*) from responses r where r.form_id = f.id) as responses,
 		(select max(created_at) from responses r where r.form_id = f.id) as latest
-		from forms f where f.owner_id = ? order by f.updated_at desc`).all(ownerId)
+		from forms f join users u on u.id = f.owner_id order by f.updated_at desc`).all()
 		.map((row) => ({ ...row, questions: JSON.parse(row.questions).length, settings: JSON.parse(row.settings) }));
 }
 

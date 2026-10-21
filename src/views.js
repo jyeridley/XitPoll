@@ -69,23 +69,29 @@ export const signInButton = (next, label = "Sign in with Xitter", kind = "xitter
 // attributes, which the content security policy doesn't allow
 const bar = (fraction) => `<span class="fill p${Math.round(Math.min(Math.max(fraction, 0), 1) * 100)}" aria-hidden="true"></span>`;
 
+// signed out: XitPoll is a staff tool, so the front page only signs staff in
 export function landing() {
 	return page({
 		title: "",
-		wide: true,
-		body: `<section class="hero">
-<h1>Forms and polls, <span class="muted-strong">for Xitter.</span></h1>
-<p class="lead">Build surveys, sign-up sheets and polls. Share one link and see answers as they come in. Sign in with the Xitter account you already have.</p>
-<div class="row">${signInButton("/", "Sign in with Xitter", "primary")}<a class="button outline big-button" href="#how">How it works</a></div>
-</section>
-<section class="how" id="how">
-<h2>How it works</h2>
-<p class="dim">Build a form, share the link, read the results.</p>
-<ul class="features">
-<li><b>${icon("list")}Seven question types</b><span>Short and long answers, multiple choice, checkboxes, dropdowns, linear scales and dates.</span></li>
-<li><b>${icon("lock")}Know who answered</b><span>Ask respondents to sign in with Xitter, and limit each account to one response.</span></li>
-<li><b>${icon("chart")}Results as they arrive</b><span>A chart for every question, each individual response, and a CSV export.</span></li>
-</ul>
+		body: `<section class="card narrow">
+<div class="sign-in-mark">${X_MARK}</div>
+<h1>${esc(config.appName)}</h1>
+<p class="dim">Public forms and polls, made by the Xitter team. Sign in with your staff account to make and manage forms.</p>
+<div class="stack">${signInButton("/")}</div>
+<p class="fine">Answering a form? Open the link you were given. You don't need to sign in here.</p>
+</section>`,
+	});
+}
+
+export function notStaff(user) {
+	return page({
+		title: "Staff only",
+		user,
+		body: `<section class="card narrow">
+<div class="gate-art">${icon("lock")}</div>
+<h1>Staff only</h1>
+<p class="dim">${esc(config.appName)} is an internal tool for Xitter staff, and <b>${esc(handle(user))}</b> isn't on its staff list.</p>
+<p class="fine">Answering a form? Open the link you were given. You can answer forms with any account.</p>
 </section>`,
 	});
 }
@@ -112,13 +118,13 @@ export function dashboard(user, forms) {
 	const tiles = forms.map((f) => `<li><a href="/forms/${esc(f.id)}/edit" class="form-tile theme-${esc(themeOf(f))}">
 <b class="tile-title">${esc(f.title)}</b>
 <span class="tile-meta"><span class="pill ${f.accepting ? "open" : "closed"}"><span class="dot"></span>${f.accepting ? "Open" : "Closed"}</span><span class="dim">${plural(f.responses, "response")}</span></span>
-<span class="dim small-text">${plural(f.questions, "question")} · edited ${esc(ago(f.updated_at))}</span>
+<span class="dim small-text">${plural(f.questions, "question")} · by @${esc(f.owner)} · edited ${esc(ago(f.updated_at))}</span>
 </a></li>`).join("");
 	const total = forms.reduce((n, f) => n + f.responses, 0);
 	return page({
-		title: "My forms",
+		title: "Forms",
 		user,
-		body: `<div class="page-head"><h1>My forms</h1><p class="dim">${forms.length ? `${plural(forms.length, "form")}, ${plural(total, "response")} in all` : "Make a form or poll and share the link."}</p></div>
+		body: `<div class="page-head"><h1>Forms</h1><p class="dim">${forms.length ? `${plural(forms.length, "form")}, ${plural(total, "response")} in all` : "No forms yet. Make one and share the link."}</p></div>
 <ul class="tile-grid">
 <li><form method="post" action="/forms" class="new-tile-form"><input type="hidden" name="csrf" value="${esc(user.csrf)}"><button class="new-tile"><span class="plus">${icon("plus")}</span><b>New form</b><span class="dim">Start from a blank form</span></button></form></li>
 ${tiles}
@@ -136,11 +142,11 @@ export function builder(user, form, responseCount) {
 		bodyClass: "editor",
 		head: `<script type="module" src="/static/builder.js"></script>`,
 		body: `<div class="toolbar sticky">
-<a href="/" class="button ghost small icon-text">${icon("back")}<span>Forms</span></a>
+<a href="/" class="button outline small icon-text">${icon("back")}<span>Forms</span></a>
 <span id="status" class="save-status" data-state="saved" role="status" aria-live="polite"><span class="save-dot"></span><span class="save-text">All changes saved</span></span>
 <span class="grow"></span>
-<button type="button" class="ghost small icon-text" id="copy-link">${icon("link")}<span>Copy link</span></button>
-<a class="button ghost small icon-text" href="/f/${esc(form.id)}" target="_blank" rel="noopener">${icon("eye")}<span>Preview</span></a>
+<button type="button" class="outline small icon-text" id="copy-link">${icon("link")}<span>Copy link</span></button>
+<a class="button outline small icon-text" href="/f/${esc(form.id)}" target="_blank" rel="noopener">${icon("eye")}<span>Preview</span></a>
 <a class="button small icon-text" href="/forms/${esc(form.id)}/responses">${icon("chart")}<span>Responses</span>${responseCount ? `<span class="badge">${responseCount}</span>` : ""}</a>
 </div>
 <script type="application/json" id="form-data">${data}</script>
@@ -196,7 +202,7 @@ ${problem}
 <form method="post" action="/f/${esc(form.id)}" class="answers" novalidate>
 ${user ? `<input type="hidden" name="csrf" value="${esc(user.csrf)}">` : ""}
 ${form.questions.map((q) => questionField(q, values[q.id] ?? (q.type === "checkbox" ? [] : ""), errors[q.id])).join("\n")}
-<div class="submit-row"><button class="big-button" data-busy="Sending…">Submit</button><button type="reset" class="ghost">Clear form</button></div>
+<div class="submit-row"><button class="big-button" data-busy="Sending…">Submit</button><button type="reset" class="outline">Clear form</button></div>
 </form>`,
 	});
 }
@@ -240,7 +246,7 @@ export function thanks({ form, user, responses }) {
 		body: `${formHeader(form)}<div class="card done">
 <span class="done-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
 <h2>${esc(form.settings.confirmation || "Your response has been recorded.")}</h2>
-${form.settings.oneResponse ? "" : `<p><a class="button ghost small" href="/f/${esc(form.id)}">Submit another response</a></p>`}</div>${results}`,
+${form.settings.oneResponse ? "" : `<p><a class="button outline small" href="/f/${esc(form.id)}">Submit another response</a></p>`}</div>${results}`,
 	});
 }
 
@@ -257,8 +263,8 @@ ${responses.slice().reverse().map((r) => `<tr><td class="nowrap">${esc(new Date(
 		wide: true,
 		theme: themeOf(form),
 		body: `<div class="toolbar">
-<a href="/forms/${esc(form.id)}/edit" class="button ghost small icon-text">${icon("edit")}<span>Edit form</span></a><span class="grow"></span>
-${responses.length ? `<a class="button ghost small icon-text" href="/forms/${esc(form.id)}/responses.csv" download>${icon("download")}<span>Download CSV</span></a>` : ""}
+<a href="/forms/${esc(form.id)}/edit" class="button outline small icon-text">${icon("edit")}<span>Edit form</span></a><span class="grow"></span>
+${responses.length ? `<a class="button outline small icon-text" href="/forms/${esc(form.id)}/responses.csv" download>${icon("download")}<span>Download CSV</span></a>` : ""}
 </div>
 <div class="card form-head"><h1>${esc(form.title)}</h1>
 <div class="stats">
@@ -269,7 +275,7 @@ ${responses.length ? `<a class="button ghost small icon-text" href="/forms/${esc
 <div class="row between head-actions">
 <form method="post" action="/forms/${esc(form.id)}/accepting">${csrf}<input type="hidden" name="accepting" value="${form.accepting ? "0" : "1"}">
 <label class="switch"><button class="toggle${form.accepting ? " on" : ""}" role="switch" aria-checked="${form.accepting}" aria-label="Accepting responses"></button><span>${form.accepting ? "Accepting responses" : "Not accepting responses"}</span></label></form>
-${responses.length ? `<form method="post" action="/forms/${esc(form.id)}/responses/delete" data-confirm="Delete all ${responses.length} responses? This can't be undone.">${csrf}<button class="ghost small danger icon-text">${icon("trash")}<span>Delete all responses</span></button></form>` : ""}
+${responses.length ? `<form method="post" action="/forms/${esc(form.id)}/responses/delete" data-confirm="Delete all ${responses.length} responses? This can't be undone.">${csrf}<button class="outline small danger icon-text">${icon("trash")}<span>Delete all responses</span></button></form>` : ""}
 </div></div>
 ${responses.length
 	? `<div class="tabs" role="tablist" hidden><button type="button" role="tab" aria-selected="true" aria-controls="summary">Summary</button><button type="button" role="tab" aria-selected="false" aria-controls="individual">Individual</button></div>
@@ -280,5 +286,5 @@ ${responses.length
 }
 
 export function message(title, text, { user, status = 400 } = {}) {
-	return { status, html: page({ title, user, body: `<section class="card narrow"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a class="button ghost small" href="/">Go home</a></p></section>` }) };
+	return { status, html: page({ title, user, body: `<section class="card narrow"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a class="button outline small" href="/">Go home</a></p></section>` }) };
 }

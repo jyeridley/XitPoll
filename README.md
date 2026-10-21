@@ -1,7 +1,8 @@
 # XitPoll
 
-A Google Forms-style form and poll builder where people sign in with their
-[Xitter](https://github.com/Xittered/xitter) account.
+An internal tool for Xitter staff to make public forms and polls, like Google
+Forms. Staff sign in with their [Xitter](https://github.com/Xittered/xitter)
+accounts; anyone with a form's link can answer it.
 
 - **Builder**: title and description, then any number of questions: short
   answer, paragraph, multiple choice, checkboxes, dropdown, linear scale
@@ -9,9 +10,11 @@ A Google Forms-style form and poll builder where people sign in with their
   reorder, duplicate and delete them. Changes save automatically.
 - **Sharing**: every form has a public link (`/f/<id>`) that works without
   JavaScript, on phones, and in light and dark mode.
-- **Sign in with Xitter**: form owners always sign in. A form can also require
-  respondents to sign in, which records which account answered, and can limit
-  each account to one response.
+- **Staff only**: only the accounts listed in `XITPOLL_STAFF` can make and
+  manage forms. Every staff member sees and can edit every form; each shows who
+  made it. Anyone else who signs in is told the tool is for staff.
+- **Sign in with Xitter**: a form can require respondents to sign in, which
+  records which account answered, and can limit each account to one response.
 - **Polls**: optionally show respondents the results of the choice questions
   after they submit.
 - **Responses**: a chart for each question, a table of individual responses,
@@ -70,6 +73,24 @@ Set `XITTER_INSTANCE` as well to skip the instance question and allow only
 that one instance. Instances people type in must be public https hosts; XitPoll
 refuses private and loopback addresses.
 
+### Staff
+
+List staff accounts in `XITPOLL_STAFF`, separated by commas or spaces:
+
+```sh
+XITPOLL_STAFF="alice, bob, carol@other.instance"
+```
+
+A bare handle means that handle on `XITTER_INSTANCE`; write `handle@host` for
+accounts on another instance. Xitter's API doesn't tell apps who its own staff
+are, so this list is the source of truth.
+
+The first time a listed handle signs in, XitPoll ties the entry to that Xitter
+account. If the person later changes their handle and someone else takes the
+old one, the newcomer is refused. To move an entry to a different account,
+remove it from `XITPOLL_STAFF`, restart, then add it back. Removing someone
+from the list takes effect when XitPoll restarts.
+
 ### Settings
 
 | Variable | Default | |
@@ -78,6 +99,7 @@ refuses private and loopback addresses.
 | `PUBLIC_URL` | `http://localhost:$PORT` | The address people use. Builds the redirect URL and share links; `https://` also turns on `Secure` cookies |
 | `XITTER_INSTANCE` | (none) | Allow only this instance |
 | `XITTER_CLIENT_ID` | (none) | A client ID registered on `XITTER_INSTANCE` |
+| `XITPOLL_STAFF` | (none) | Staff accounts that can make and manage forms (see above) |
 | `DATABASE_PATH` | `data/xitpoll.db` | SQLite file |
 | `APP_NAME` | `XitPoll` | Shown in the header and on Xitter's consent screen |
 
@@ -87,7 +109,7 @@ production.
 ## Trying it without a Xitter instance
 
 `test/mock-xitter.js` is a stand-in Xitter that follows the same OAuth rules
-and approves every sign-in as `@alice`. One command starts it together with
+and approves every sign-in as `@alice`, who the demo makes staff. One command starts it together with
 XitPoll (works in Windows Command Prompt and PowerShell too):
 
 ```sh
@@ -102,17 +124,18 @@ Setting variables differs by shell. To start XitPoll with your own settings:
 
 ```sh
 # macOS / Linux
-XITTER_INSTANCE=https://your.instance XITTER_CLIENT_ID=123 npm start
+XITTER_INSTANCE=https://your.instance XITTER_CLIENT_ID=123 XITPOLL_STAFF="alice, bob" npm start
 ```
 ```bat
 :: Windows Command Prompt
 set XITTER_INSTANCE=https://your.instance
 set XITTER_CLIENT_ID=123
+set XITPOLL_STAFF=alice, bob
 npm start
 ```
 ```powershell
 # Windows PowerShell
-$env:XITTER_INSTANCE="https://your.instance"; $env:XITTER_CLIENT_ID="123"; npm start
+$env:XITTER_INSTANCE="https://your.instance"; $env:XITTER_CLIENT_ID="123"; $env:XITPOLL_STAFF="alice, bob"; npm start
 ```
 
 ## Tests

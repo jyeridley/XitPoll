@@ -122,15 +122,15 @@ async function callback(req, res, url) {
 	}
 }
 
-function ownForm(id, user) {
-	const form = db.ownedForm(id, user.id);
-	// someone else's form looks the same as no form
+// any staff member can manage any form
+function staffForm(id) {
+	const form = db.getForm(id);
 	if (!form) throw new HttpError(404, "That form doesn't exist.");
 	return form;
 }
 
 async function respond(req, res, form, user) {
-	const owner = user?.id === form.owner_id;
+	const owner = db.isStaff(user);
 	if (!form.accepting && !owner) return html(res, views.gate({ form, user, kind: "closed" }), 403);
 	if (form.settings.requireSignIn && !user) return html(res, views.gate({ form, user, kind: "signin" }), req.method === "GET" ? 200 : 401);
 	if (form.settings.oneResponse && db.hasResponded(form.id, user.id)) return html(res, views.gate({ form, user, kind: "answered" }), req.method === "GET" ? 200 : 409);
@@ -160,7 +160,10 @@ async function route(req, res) {
 		return send(res, 200, JSON.stringify(clientMetadataDocument()), { "content-type": "application/json", "cache-control": "public, max-age=300" });
 	if (method === "GET" && path === "/healthz") return send(res, 200, "ok", { "content-type": "text/plain" });
 
-	if (method === "GET" && path === "/") return html(res, user ? views.dashboard(user, db.listForms(user.id)) : views.landing());
+	if (method === "GET" && path === "/") {
+		if (!user) return html(res, views.landing());
+		return db.isStaff(user) ? html(res, views.dashboard(user, db.listForms())) : html(res, views.notStaff(user), 403);
+	}
 	if (method === "GET" && path === "/login") return login(req, res, url);
 	if (method === "GET" && path === "/auth/callback") return callback(req, res, url);
 	if (method === "POST" && path === "/logout") {
@@ -176,10 +179,14 @@ async function route(req, res) {
 		return respond(req, res, form, user);
 	}
 
-	// everything below belongs to a signed-in form owner
+	// everything below is for staff
 	if (!user) {
 		if (method === "GET") return redirect(res, `/login?next=${encodeURIComponent(path + url.search)}`);
 		throw new HttpError(401, "Sign in first.");
+	}
+	if (!db.isStaff(user)) {
+		if (method === "GET") return html(res, views.notStaff(user), 403);
+		throw new HttpError(403, "Only Xitter staff can manage forms.");
 	}
 
 	if (method === "POST" && path === "/forms") {
@@ -189,14 +196,14 @@ async function route(req, res) {
 	}
 
 	if ((m = /^\/forms\/([A-Za-z0-9_-]{1,32})\/edit$/.exec(path)) && method === "GET") {
-		const form = ownForm(m[1], user);
+		const form = staffForm(m[1]);
 		return html(res, views.builder(user, form, db.listResponses(form.id).length));
 	}
 
 	if ((m = /^\/api\/forms\/([A-Za-z0-9_-]{1,32})$/.exec(path)) && (method === "PUT" || method === "DELETE")) {
 		checkOrigin(req);
 		checkCsrf(user, req.headers["x-csrf-token"]);
-		const form = ownForm(m[1], user);
+		const form = staffForm(m[1]);
 		if (method === "DELETE") {
 			db.deleteForm(form.id);
 			return json(res, { ok: true });
@@ -214,7 +221,7 @@ async function route(req, res) {
 	}
 
 	if ((m = /^\/forms\/([A-Za-z0-9_-]{1,32})\/responses(\.csv)?$/.exec(path)) && method === "GET") {
-		const form = ownForm(m[1], user);
+		const form = staffForm(m[1]);
 		const responses = db.listResponses(form.id);
 		if (m[2]) {
 			const filename = `${form.title.replace(/[^\w -]+/g, "").trim().slice(0, 60) || "responses"}.csv`;
@@ -227,7 +234,7 @@ async function route(req, res) {
 		checkOrigin(req);
 		const params = await formBody(req);
 		checkCsrf(user, params.get("csrf"));
-		const form = ownForm(m[1], user);
+		const form = staffForm(m[1]);
 		if (m[2] === "accepting") db.setAccepting(form.id, params.get("accepting") === "1");
 		else db.deleteResponses(form.id);
 		return redirect(res, `/forms/${form.id}/responses`);
@@ -237,6 +244,7 @@ async function route(req, res) {
 }
 
 export function createServer() {
+	db.forgetStaffExcept(config.staff);
 	return http.createServer(async (req, res) => {
 		try {
 			await route(req, res);
@@ -260,6 +268,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	createServer().listen(config.port, () => {
 		console.log(`${config.appName} on ${config.publicUrl}`);
 		console.log(config.instance ? `Signing in with ${config.instance}` : "People sign in with the Xitter instance of their choice");
+		if (!config.staff.size) console.warn("Warning: XITPOLL_STAFF is empty, so nobody can make forms. See README.");
+		else console.log(`Staff: ${[...config.staff].join(", ")}`);
 		if (config.usesMetadataDocument && !/^https:\/\/[^:/]+\/\S+/.test(config.clientId))
 			console.warn("Warning: without XITTER_CLIENT_ID, PUBLIC_URL must be an https address with no port, or Xitter won't accept our client metadata document. See README.");
 	});

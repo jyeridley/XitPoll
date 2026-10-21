@@ -11,6 +11,8 @@ const origin = await mock.listen(Number(process.env.MOCK_PORT || 4000));
 process.env.XITTER_INSTANCE = origin;
 process.env.XITTER_CLIENT_ID = "123456789";
 process.env.DATABASE_PATH ||= "data/demo.db";
+// the mock signs everyone in as @alice; make her staff
+process.env.XITPOLL_STAFF ||= "alice";
 
 const { config } = await import("../src/config.js");
 const { createServer } = await import("../server.js");

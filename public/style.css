@@ -143,16 +143,16 @@ button, .button {
 }
 button:hover, .button:hover { background: var(--accent-hover); text-decoration: none; }
 button:disabled { opacity: .5; cursor: default; }
-.outline, .ghost { background: transparent; color: var(--text); border-color: var(--line); }
-.outline:hover, .ghost:hover { background: var(--hover); }
+.outline { background: transparent; color: var(--text); border-color: var(--line); }
+.outline:hover { background: var(--hover); }
 .xitter { background: var(--text); color: var(--bg); }
 .xitter:hover { background: color-mix(in srgb, var(--text) 88%, var(--bg)); }
 .small { min-height: 32px; padding: 0 14px; font-size: 14px; }
 .big-button { min-height: 48px; padding: 0 24px; font-size: 17px; }
 .icon-text .icon-svg { width: 18px; height: 18px; }
 .danger { color: var(--danger); }
-.outline.danger, .ghost.danger { border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
-.outline.danger:hover, .ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.outline.danger { border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+.outline.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 .icon {
 	min-height: 34px; width: 34px; padding: 0;
 	background: transparent; color: var(--muted); border-radius: 50%;
@@ -212,23 +212,10 @@ input[role=switch]:disabled { opacity: .5; cursor: default; }
 }
 .toast.show { transform: translate(-50%, 0); opacity: 1; }
 
-/* ---------- landing, like xitter.space ---------- */
-.hero { padding: 72px 0 56px; max-width: 1000px; }
-.hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.04em; margin: 0 0 20px; }
-.muted-strong { color: var(--muted); }
-.lead { font-size: 20px; line-height: 1.5; color: var(--muted); max-width: 580px; margin-bottom: 32px; }
-.how { border-top: 1px solid var(--border); margin: 0 calc(50% - 50vw); padding: 48px calc(50vw - 50%) 0; }
-.how h2 { font-size: 28px; margin-bottom: 4px; }
-.how > .dim { font-size: 17px; }
-.features { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.features li { border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; display: grid; gap: 6px; align-content: start; }
-.features b { display: flex; align-items: center; gap: 10px; font-size: 17px; }
-.features .icon-svg { width: 20px; height: 20px; color: var(--muted); }
-.features span { color: var(--muted); line-height: 1.5; }
-
 /* ---------- sign in ---------- */
 .sign-in-mark { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 16px; background: var(--text); color: var(--bg); }
 .sign-in-mark .x-mark { width: 22px; height: 22px; }
+.narrow .stack { margin: 20px 0 4px; }
 
 /* ---------- dashboard ---------- */
 .tile-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
@@ -423,8 +410,6 @@ tr:last-child td { border-bottom: 0; }
 	.toolbar .icon-text { padding: 0 10px; }
 	.save-text { display: none; }
 	.q-number { display: none; }
-	.hero { padding: 40px 0 36px; }
-	.lead { font-size: 17px; }
 	.stat { border-left: 0; border-top: 1px solid var(--border); margin: -1px 0 0; }
 }
 

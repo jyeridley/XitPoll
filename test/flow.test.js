@@ -3,10 +3,12 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { after, before, test } from "node:test";
-import { startMockXitter } from "./mock-xitter.js";
+import { ACCOUNTS, startMockXitter } from "./mock-xitter.js";
 
 const CLIENT_ID = "123456789";
-const mock = startMockXitter({ clientId: CLIENT_ID });
+// carol is staff too; "impostor" later holds the handle @carol on another account
+const accounts = { ...ACCOUNTS, carol: { id: "1003", screen_name: "carol", name: "Carol", avatar_url: null }, impostor: { id: "1099", screen_name: "Carol", name: "Not Carol", avatar_url: null } };
+const mock = startMockXitter({ clientId: CLIENT_ID, accounts });
 
 let app, base, xitterOrigin;
 
@@ -18,7 +20,7 @@ before(async () => {
 	const port = probe.address().port;
 	await new Promise((r) => probe.close(r));
 	base = `http://localhost:${port}`;
-	Object.assign(process.env, { PORT: String(port), PUBLIC_URL: base, XITTER_INSTANCE: xitterOrigin, XITTER_CLIENT_ID: CLIENT_ID, DATABASE_PATH: ":memory:" });
+	Object.assign(process.env, { PORT: String(port), PUBLIC_URL: base, XITTER_INSTANCE: xitterOrigin, XITTER_CLIENT_ID: CLIENT_ID, DATABASE_PATH: ":memory:", XITPOLL_STAFF: "alice, @carol" });
 	const { createServer } = await import("../server.js");
 	app = createServer();
 	await new Promise((r) => app.listen(port, r));
@@ -63,7 +65,7 @@ async function signIn(b, who, next = "/") {
 
 const csrfOf = (html) => /name="csrf" value="([^"]+)"/.exec(html)?.[1];
 
-const alice = browser(), bob = browser(), stranger = browser();
+const alice = browser(), bob = browser(), carol = browser(), stranger = browser();
 let formId, aliceCsrf;
 
 test("landing page offers Xitter sign-in", async () => {
@@ -77,7 +79,7 @@ test("signing in with Xitter lands on the dashboard", async () => {
 	assert.equal(await signIn(alice, "alice"), "/");
 	const { text } = await alice.go("/");
 	assert.match(text, /@alice@127\.0\.0\.1/);
-	assert.match(text, /My forms/);
+	assert.match(text, /<h1>Forms<\/h1>/);
 	aliceCsrf = csrfOf(text);
 	assert.ok(aliceCsrf);
 });
@@ -162,17 +164,40 @@ test("anyone with the link can answer; answers are validated", async () => {
 	assert.match(bad.text, /valid date/);
 });
 
-test("other accounts can't see or edit someone's form", async () => {
+test("only staff can manage forms; staff share them", async () => {
+	// bob isn't staff: he can sign in (to answer forms) but not manage any
 	await signIn(bob, "bob");
-	assert.equal((await bob.go(`/forms/${formId}/edit`)).res.status, 404);
-	assert.equal((await bob.go(`/forms/${formId}/responses`)).res.status, 404);
-	const bobCsrf = csrfOf((await bob.go("/")).text);
+	const home = await bob.go("/");
+	assert.equal(home.res.status, 403);
+	assert.match(home.text, /Staff only/);
+	assert.equal((await bob.go(`/forms/${formId}/edit`)).res.status, 403);
+	assert.equal((await bob.go(`/forms/${formId}/responses.csv`)).res.status, 403);
+	const bobCsrf = csrfOf(home.text);
+	assert.equal((await bob.post("/forms", { csrf: bobCsrf })).res.status, 403);
 	const put = await bob.go(`/api/forms/${formId}`, { method: "PUT", body: "{}", headers: { "content-type": "application/json", "x-csrf-token": bobCsrf, origin: base } });
-	assert.equal(put.res.status, 404);
-	// and signed-out visitors get sent to sign in
+	assert.equal(put.res.status, 403);
+	// signed-out visitors get sent to sign in
 	const anon = await stranger.go(`/forms/${formId}/responses`);
 	assert.equal(anon.res.status, 303);
 	assert.match(anon.res.headers.get("location"), /^\/login\?next=/);
+
+	// carol is staff: she sees alice's form, who made it, and can open it
+	await signIn(carol, "carol");
+	const list = await carol.go("/");
+	assert.equal(list.res.status, 200);
+	assert.match(list.text, /Team lunch/);
+	assert.match(list.text, /by @alice/);
+	assert.equal((await carol.go(`/forms/${formId}/edit`)).res.status, 200);
+});
+
+test("a staff handle taken over by another account doesn't get in", async () => {
+	// the binding to carol's account was made when she signed in above
+	const other = browser();
+	await signIn(other, "impostor");
+	assert.equal((await other.go("/")).res.status, 403);
+	assert.equal((await other.go(`/forms/${formId}/edit`)).res.status, 403);
+	// carol herself still does
+	assert.equal((await carol.go("/")).res.status, 200);
 });
 
 test("sign-in required, one response per account", async () => {
@@ -224,7 +249,7 @@ test("deleting a form and signing out", async () => {
 	assert.equal((await stranger.go(`/f/${formId}`)).res.status, 404);
 	const out = await alice.post("/logout", { csrf: aliceCsrf });
 	assert.equal(out.res.status, 303);
-	assert.match((await alice.go("/")).text, /Forms and polls, /);
+	assert.match((await alice.go("/")).text, /Sign in with your staff account/);
 });
 
 test("the client metadata document names our redirect", async () => {
